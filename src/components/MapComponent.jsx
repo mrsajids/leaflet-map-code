@@ -1,20 +1,12 @@
-import React, { useEffect, useRef } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Polyline,
-  Marker,
-  Popup,
-  FeatureGroup,
-} from "react-leaflet";
+import React from "react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import IndiaMapContainer from "./IndiaMapContainer";
 import HistoryMap from "./HistoryMap";
 
-const MapComponent = ({}) => {
+const MapComponent = ({ }) => {
   return (
-    <IndiaMapContainer>
+    <IndiaMapContainer isLayerSwitcher={true}>
       <HistoryMap />
     </IndiaMapContainer>
   );

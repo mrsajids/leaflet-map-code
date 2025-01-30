@@ -24,9 +24,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
 });
 
-const IndiaMapContainer = ({ children }) => {
+const IndiaMapContainer = ({ children, isLayerSwitcher }) => {
   const MapContext = createContext(null);
   const [isMapLoading, setIsMapLoading] = useState(false);
+  // console.log(isLayerSwitcher);
+
   // Define available layers
   const layers = [
     {
@@ -64,7 +66,7 @@ const IndiaMapContainer = ({ children }) => {
           center={INDIACENTER}
           zoom={ZOOM}
           scrollWheelZoom={true}
-          // minZoom={MINZOOM}
+          minZoom={MINZOOM}
           maxZoom={MAXZOOM}
           maxBounds={INDIABOUNDS}
           maxBoundsViscosity={1.0}
@@ -76,7 +78,9 @@ const IndiaMapContainer = ({ children }) => {
           {/* Default Tile Layer */}
           <TileLayer attribution={layers[0].attribution} url={layers[0].url} />
           {/* Add the Layer Switcher */}
-          <LayerSwitcher layers={layers} />
+          {
+            isLayerSwitcher && <LayerSwitcher layers={layers} />
+          }
           {children}
           <Loader isLoading={isMapLoading} />
         </MapContainer>
