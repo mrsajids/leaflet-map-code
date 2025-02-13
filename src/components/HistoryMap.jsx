@@ -1,170 +1,59 @@
-import React, { useEffect, useRef, useState } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Polyline,
-  Marker,
-  Popup,
-  FeatureGroup,
-  useMap,
-} from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import { historyData } from "./data";
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-canvas-markers';
 import L from "leaflet";
-import greenicon from './greenicon.png';
-import redicon from './redicon.png';
-import greenarrow from './greenarrow.png';
-import redarrow from './redarrow.png';
 
-const HistoryMap = ({ }) => {
-  const featureRef = useRef();
-  const map = useMap({});
-  const [routeArrowMarkers, setRouteArrowMarkers] = useState([]);
-  const [startFlagPositions, setStartFlagPositions] = useState([]);
-  const [endFlagPosition, setEndFlagPosition] = useState([]);
-  const [segments, setSegments] = useState([]);
+// Generate 5,000 random markers within India
+const markers = Array.from({ length: 5000 }, (_, i) => ({
+  id: i,
+  lat: 8.4 + Math.random() * (37.6 - 8.4), // Latitude within India
+  lng: 68.7 + Math.random() * (97.25 - 68.7), // Longitude within India
+}));
 
+// Component to render canvas markers
+const CanvasMarkersLayer = () => {
+  const map = useMap();
 
-  //   let vehicleHistory = [];
   useEffect(() => {
-    fetchHistory();
-  }, []);
+    if (!map) return;
 
-  const fetchHistory = async () => {
-    // fetch code
-    // ....
-    const vehicleData = historyData;
-    // first flag
-    const initialLat = Number(vehicleData[0].latitude);
-    const initialLng = Number(vehicleData[0].longitude);
-    // last flag
-    const lastLat = Number(vehicleData[vehicleData.length - 1].latitude);
-    const lastLng = Number(vehicleData[vehicleData.length - 1].longitude);
+    // Initialize the canvas markers layer
+    const canvasLayer = L.canvasMarkers({
+      markers,
+      renderMarker: (marker) => {
+        const ctx = marker.ctx;
+        ctx.beginPath();
+        ctx.arc(marker.x, marker.y, 5, 0, Math.PI * 2); // Draw a circle for each marker
+        ctx.fillStyle = '#0078ff'; // Marker color
+        ctx.fill();
+      },
+    }).addTo(map);
 
-    setStartFlagPositions([initialLat, initialLng]);
-    setEndFlagPosition([lastLat, lastLng]);
+    // Fit the map to the bounds of the markers
+    const bounds = L.latLngBounds(markers.map((marker) => [marker.lat, marker.lng]));
+    map.fitBounds(bounds);
 
-    // drawing new Route
-    const newRoute = drawRoute(vehicleData);
+    // Cleanup on unmount
+    return () => {
+      map.removeLayer(canvasLayer);
+    };
+  }, [map]);
 
-    setTimeout(() => {
-      setRouteArrowMarkers(vehicleData);
-      setSegments(newRoute);
-    }, 2500);
+  return null;
+};
 
-    const routeBounds = newRoute.flatMap(item => item.positions);
-
-    // console.log(aaa);
-    map.flyToBounds([routeBounds], map.getZoom(), {
-      animate: true, // Optional: smooth transition
-      duration: 3, // Optional: specify the duration of the flyTo
-    });
-
-  }
-
-  const drawRoute = (vehicles) => {
-    // line color based on Inside or Outside
-    const updatedSegments = [
-      { positions: [], color: "#3f3c3c" }, // Default to blue for "Inside"
-    ];
-    vehicles.forEach((item) => {
-      const lat = Number(item.latitude);
-      const lng = Number(item.longitude);
-      const newPos = [lat, lng];
-
-      const currentStatus =
-        item.onhiwaystatus === "Inside" ? "#3f3c3c" : "#9f9f9f";
-
-      // Always add the new position to the last segment
-      updatedSegments[updatedSegments.length - 1].positions.push(newPos);
-
-      // If the color changes, add a new segment with the new color but continue the line
-      if (
-        updatedSegments[updatedSegments.length - 1].color !== currentStatus
-      ) {
-        updatedSegments.push({ positions: [newPos], color: currentStatus });
-      }
-    });
-
-    return updatedSegments;
-  }
-
-
-
-  const getArrowIcon = (vehicle) => {
-    // change color of vehicle accroing to its status
-    const vehicleSpeed = Number(vehicle.vehiclespeed);
-
-    const arrowicon = vehicleSpeed > 80 ? redarrow : greenarrow;
-
-    return new L.DivIcon({
-      className: "", // Custom class for the icon
-      html: `<img class="arrow-icon" height="14" src=${arrowicon} alt="" style="transform: rotate(${vehicle?.vehicledirectionvalue}deg);" />`,
-      iconSize: [40, 40], // Size of the whole icon container (including text)
-      iconAnchor: [0, 0], // Anchor the icon to its center
-      // anch
-    });
-  };
-
-  const commonIcon = (src = "") => {
-    // change color of vehicle accroing to its status
-    return new L.DivIcon({
-      className: "", // Custom class for the icon
-      html: `<img class="flag-icon" height="40" src=${src} alt="" />`,
-      // iconSize: [0, 0], // Size of the whole icon container (including text)
-      iconAnchor: [0, 0], // Anchor the icon to its center
-    });
-  };
-
-
+// Main Map Component
+const MapWithCanvasMarkers = () => {
   return (
-    <FeatureGroup ref={featureRef}>
-      {startFlagPositions.length > 0 && (
-        <Marker
-          position={startFlagPositions}
-          icon={commonIcon(greenicon)}
-          zIndexOffset={151}
-        ></Marker>
-      )}
-
-      {/* arrows showing history */}
-      {routeArrowMarkers.length > 0 &&
-        routeArrowMarkers.map((vehicle, index) => (
-          <Marker
-            key={index}
-            position={[Number(vehicle.latitude), Number(vehicle.longitude)]}
-            icon={getArrowIcon(vehicle)}
-            zIndexOffset={150}
-            eventHandlers={{
-              // click: () => setVehicleInfo(vehicle),
-            }}
-          >
-            <Popup className="historytrack-popup">
-              {/* <VehicleDetailCard /> */}
-            </Popup>
-          </Marker>
-        ))}
-
-      {segments.map((segment, index) => (
-        <Polyline
-          key={index}
-          positions={segment.positions}
-          pathOptions={{ color: segment.color }}
-          weight={7}
-          opacity={0.8}
-        />
-      ))}
-      {/* end flag */}
-      {endFlagPosition.length > 0 && (
-        <Marker
-          position={endFlagPosition}
-          icon={commonIcon(redicon)}
-          zIndexOffset={151}
-        ></Marker>
-      )}
-
-    </FeatureGroup>
+    <MapContainer center={[20.5937, 78.9629]} zoom={5} style={{ height: '100vh', width: '100%' }}>
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      />
+      <CanvasMarkersLayer />
+    </MapContainer>
   );
 };
 
-export default HistoryMap;
+export default MapWithCanvasMarkers;

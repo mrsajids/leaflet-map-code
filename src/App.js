@@ -17,10 +17,10 @@ function App() {
       <Routes>
         <Route path="/" element={<IndiaMapContainer />} />
         <Route path="about" element={<About />} />
-        <Route path="home" element={<MapComponent />} />
+        <Route path="history" element={<MapComponent />} />
       </Routes>
     </>
-  );
+  ); 
 }
 
 export default App;
