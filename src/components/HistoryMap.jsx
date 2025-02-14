@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-canvas-markers';
 import L from "leaflet";
 import CanvasMarkerLayer from './CanvasMarkerLayer';
+import redarrow from './redarrow.png';
 
 const markers1 = Array.from({ length: 10000 }, (_, i) => ({
   lat: 37.7749 + Math.random() * 5,
@@ -16,7 +17,7 @@ const MapWithCanvasMarkers = () => {
   return (
     <CanvasMarkerLayer
     markers={markers1}
-    iconUrl="https://cdn-icons-png.flaticon.com/512/252/252025.png"
+    iconUrl={redarrow}
   />
   );
 };

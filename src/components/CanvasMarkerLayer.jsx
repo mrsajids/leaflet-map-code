@@ -1,97 +1,109 @@
 import React, { useEffect } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import greenarrow from "./greenarrow.png";
+import redarrow from "./redarrow.png";
 
-const CanvasMarkerLayer = ({ markers, iconUrl }) => {
+const CanvasMarkerLayer = ({ markers }) => {
   const map = useMap();
 
   useEffect(() => {
     const canvas = L.DomUtil.create("canvas", "leaflet-canvas-layer");
     const ctx = canvas.getContext("2d");
-    canvas.width = map.getSize().x;
-    canvas.height = map.getSize().y;
+    const dpr = window.devicePixelRatio || 1; // Handle high DPI screens
+    canvas.width = map.getSize().x * dpr;
+    canvas.height = map.getSize().y * dpr;
+    ctx.scale(dpr, dpr); // Adjust for high DPI screens
 
     map.getPanes().overlayPane.appendChild(canvas);
 
-    const img = new Image();
-    img.src = iconUrl;
+    const images = {
+      green: new Image(),
+      red: new Image(),
+    };
 
-    img.onload = () => {
-      function drawMarkers() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        markers.forEach(({ lat, lng }) => {
+    images.green.src = greenarrow;
+    images.red.src = redarrow;
+
+    function drawMarkers() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      markers.forEach(({ lat, lng, status, angle }) => {
         const point = map.latLngToContainerPoint([lat, lng]);
+
+        // Choose image based on status
+        const img = status === "active" ? images.green : images.red;
+        
+        // Default rotation if angle is undefined
+        const rotationAngle = angle ? (angle * Math.PI) / 180 : 0;
 
         ctx.save();
 
         // Translate and rotate around marker point
         ctx.translate(point.x, point.y);
-        ctx.rotate((59 * Math.PI) / 180);
+        ctx.rotate(rotationAngle);
 
-        // Draw the image centered at the point
-        ctx.drawImage(img, 0, 0, 16, 16);
+        // Use a higher resolution image and scale it properly
+        const imageSize = 20; // Increase this for better quality
+        ctx.drawImage(img, -imageSize / 2, -imageSize / 2, imageSize, imageSize);
 
         ctx.restore();
-        //   ctx.drawImage(img, point.x - 8, point.y - 8, 16, 16);
-        });
-      }
+      });
+    }
 
-      function updateCanvasPosition() {
-        const bounds = map.getBounds();
-        const topLeft = map.latLngToLayerPoint(bounds.getNorthWest());
-        L.DomUtil.setPosition(canvas, topLeft);
-        canvas.width = map.getSize().x;
-        canvas.height = map.getSize().y;
-        drawMarkers();
-      }
+    function updateCanvasPosition() {
+      const bounds = map.getBounds();
+      const topLeft = map.latLngToLayerPoint(bounds.getNorthWest());
+      L.DomUtil.setPosition(canvas, topLeft);
+      canvas.width = map.getSize().x * dpr;
+      canvas.height = map.getSize().y * dpr;
+      ctx.scale(dpr, dpr); // Adjust again after resizing
+      drawMarkers();
+    }
 
-      function handleMouseMove(event) {
-        const mousePoint = event.containerPoint;
-        let hovered = false;
+    function handleMouseMove(event) {
+      const mousePoint = event.containerPoint;
+      let hovered = false;
 
-        markers.forEach(({ lat, lng }) => {
-          const point = map.latLngToContainerPoint([lat, lng]);
-          const distance = Math.sqrt(
-            Math.pow(point.x - mousePoint.x, 2) + Math.pow(point.y - mousePoint.y, 2)
-          );
-          if (distance <= 10) hovered = true;
-        });
+      markers.forEach(({ lat, lng }) => {
+        const point = map.latLngToContainerPoint([lat, lng]);
+        const distance = Math.sqrt(
+          Math.pow(point.x - mousePoint.x, 2) + Math.pow(point.y - mousePoint.y, 2)
+        );
+        if (distance <= 10) hovered = true;
+      });
 
-        canvas.style.cursor = hovered ? "pointer" : "default";
-      }
+      canvas.style.cursor = hovered ? "pointer" : "default";
+    }
 
-      function handleClick(event) {
-        const clickPoint = map.containerPointToLatLng(event.containerPoint);
+    function handleClick(event) {
+      markers.forEach(({ lat, lng, title }) => {
+        const markerPoint = map.latLngToContainerPoint([lat, lng]);
+        const distance = Math.sqrt(
+          Math.pow(markerPoint.x - event.containerPoint.x, 2) +
+          Math.pow(markerPoint.y - event.containerPoint.y, 2)
+        );
+        if (distance <= 10) {
+          L.popup()
+            .setLatLng([lat, lng])
+            .setContent(`<strong>${title}</strong>`)
+            .openOn(map);
+        }
+      });
+    }
 
-        markers.forEach(({ lat, lng, title }) => {
-          const markerPoint = map.latLngToContainerPoint([lat, lng]);
-          const distance = Math.sqrt(
-            Math.pow(markerPoint.x - event.containerPoint.x, 2) +
-            Math.pow(markerPoint.y - event.containerPoint.y, 2)
-          );
-          if (distance <= 10) {
-            L.popup()
-              .setLatLng([lat, lng])
-              .setContent(`<strong>${title}</strong>`)
-              .openOn(map);
-          }
-        });
-      }
+    map.on("moveend zoomend resize", updateCanvasPosition);
+    map.on("mousemove", handleMouseMove);
+    map.on("click", handleClick);
+    updateCanvasPosition();
 
-      map.on("moveend zoomend resize", updateCanvasPosition);
-      map.on("mousemove", handleMouseMove);
-      map.on("click", handleClick);
-      updateCanvasPosition();
-
-      return () => {
-        map.off("moveend zoomend resize");
-        map.off("mousemove", handleMouseMove);
-        map.off("click", handleClick);
-        map.getPanes().overlayPane.removeChild(canvas);
-      };
+    return () => {
+      map.off("moveend zoomend resize", updateCanvasPosition);
+      map.off("mousemove", handleMouseMove);
+      map.off("click", handleClick);
+      map.getPanes().overlayPane.removeChild(canvas);
     };
-  }, [map, markers, iconUrl]);
+  }, [map, markers]);
 
   return null;
 };
