@@ -13,7 +13,7 @@ function App() {
       {/* <Routes>
        <Route path="/" component={IndiaMapContainer}  />
         <Route path="/about" component={About} />
-    </Routes> */}
+      </Routes> */}
       <Routes>
         <Route path="/" element={<IndiaMapContainer />} />
         <Route path="about" element={<About />} />

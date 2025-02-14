@@ -66,9 +66,9 @@ const IndiaMapContainer = ({ children, isLayerSwitcher }) => {
           center={INDIACENTER}
           zoom={ZOOM}
           scrollWheelZoom={true}
-          minZoom={MINZOOM}
-          maxZoom={MAXZOOM}
-          maxBounds={INDIABOUNDS}
+          // minZoom={MINZOOM}
+          // maxZoom={MAXZOOM}
+          // maxBounds={INDIABOUNDS}
           maxBoundsViscosity={1.0}
           fullscreenControl={true}
           fullscreenControlOptions={{
